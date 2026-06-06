@@ -1,0 +1,1429 @@
+/* ============================================================
+   timeline-v6.css — unified stylesheet (replaces timeline.css + timeline-v5.css)
+   Wanted DS tokens (loaded separately) + Pretendard
+   v6 changes:
+   - LIGHT + DARK theme tokens (toggled via [data-theme="dark"] on <html>)
+   - Single file: dead legacy rules removed (.tt-event/.tt-spot/.tt-span, .tt-sheet,
+     mobile vertical-flip block, .tt-grid, .tt-footer .key/.kbd/.tt-legend)
+   - Brand: HIS STORY TIMETABLE with 80% overlap on the shared S
+   - Y-coord range slider styled with --tl-accent (replaces native blue)
+   - Watermark scale 0.55 → 0.66 (120% bump), cap 124 → 149 (JS inline)
+   - Mobile right-edge infinite-scroll: watermark x clamped (JS) +
+     overscroll-behavior: contain (CSS) so scroll extent stays bounded
+   ============================================================ */
+
+/* ============================================================
+   THEME TOKENS
+   ============================================================ */
+:root {
+  /* ===== Light theme (default) — warm cream ===== */
+  --tl-ink: #5d0d20;
+  --tl-ink-soft: rgba(96, 56, 10, 0.62);
+  --tl-ink-tertiary: rgba(96, 56, 10, 0.42);
+
+  --tl-lane-a: #fff4e0;
+  --tl-lane-b: #ffe6c0;
+
+  --tl-line: rgba(140, 98, 46, 0.22);
+  --tl-line-strong: rgba(140, 98, 46, 0.42);
+
+  --tl-axis-bg: #ffe9c9;
+  --tl-watermark: rgba(96, 56, 10, 0.1);
+
+  --tl-bcad: #c9520f;
+  --tl-accent: #c9520f;
+
+  /* span fill is ink-tinted */
+  --tl-span-fill:
+    96, 56, 10; /* rgb triplet — alpha applied via var(--tl-fill) */
+  --tl-pattern-minor: rgba(96, 56, 10, 0.07);
+  --tl-pattern-major: rgba(96, 56, 10, 0.16);
+
+  /* Side panel — dark glass (consistent across themes) */
+  --pn-bg: rgba(0, 0, 0, 0.5);
+  --pn-bg-edit: rgba(0, 0, 0, 0.55);
+  --pn-border: rgba(255, 255, 255, 0.18);
+  --pn-input-bg: rgba(255, 255, 255, 0.1);
+  --pn-input-border: rgba(255, 255, 255, 0.2);
+  --pn-fg: rgba(255, 255, 255, 0.94);
+  --pn-fg-soft: rgba(255, 255, 255, 0.65);
+  --pn-fg-tertiary: rgba(255, 255, 255, 0.45);
+}
+
+/* ===== Dark theme — "deep wine" (옵션 A) ===== */
+[data-theme="dark"] {
+  --tl-ink: #ffe2c5;
+  --tl-ink-soft: rgba(255, 226, 197, 0.62);
+  --tl-ink-tertiary: rgba(255, 226, 197, 0.42);
+
+  --tl-lane-a: #1a0e0b;
+  --tl-lane-b: #241410;
+
+  --tl-line: rgba(255, 226, 197, 0.18);
+  --tl-line-strong: rgba(255, 226, 197, 0.38);
+
+  --tl-axis-bg: #2a1813;
+  --tl-watermark: rgba(255, 226, 197, 0.1);
+
+  --tl-bcad: #ff7a2e;
+  --tl-accent: #ff7a2e;
+
+  --tl-span-fill: 255, 122, 46;
+  --tl-pattern-minor: rgba(255, 226, 197, 0.07);
+  --tl-pattern-major: rgba(255, 226, 197, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--tl-lane-a);
+  color: var(--tl-ink);
+  font-family: var(--w-font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.tt-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--tl-line);
+  background: var(--tl-lane-a);
+  z-index: 30;
+  flex-wrap: nowrap;
+}
+.tt-header .top-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+.tt-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.tt-spacer {
+  flex: 1;
+}
+
+/* v6: HIS STORY TIMETABLE — accent S of HIS overlaps S of STORY by 80% */
+.brand-name {
+  font: var(--w-title-1);
+  letter-spacing: 0.02em;
+  color: var(--tl-ink);
+  font-weight: 800;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
+}
+.brand-name .b-his-s {
+  color: var(--tl-accent);
+}
+.brand-name .b-story-s {
+  /* shift left by 80% of the previous S's width */
+  margin-left: -0.8ch;
+}
+/* v6: TIMETABLE is its own token so it can wrap to a 2nd line on mobile */
+.brand-name .b-timetable {
+  margin-left: 0.3em;
+}
+
+/* zoom control */
+.tt-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--tl-line-strong);
+  border-radius: 999px;
+  background: var(--tl-lane-a);
+  padding: 3px 4px;
+  height: 36px;
+}
+.tt-zoom .iconbtn {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--tl-ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tt-zoom .iconbtn:hover {
+  background: var(--tl-lane-b);
+}
+.tt-zoom .level-label {
+  font: var(--w-caption-1);
+  color: var(--tl-ink);
+  padding: 0 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+.tt-zoom .level-label .lv {
+  color: var(--tl-ink-tertiary);
+  margin-right: 4px;
+  letter-spacing: 0.0311em;
+}
+
+.tt-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.tt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--tl-line-strong);
+  background: var(--tl-lane-a);
+  color: var(--tl-ink);
+  padding: 0 12px;
+  height: 36px;
+  border-radius: 8px;
+  font: var(--w-label-2);
+  cursor: pointer;
+}
+.tt-btn:hover {
+  background: var(--tl-lane-b);
+}
+.tt-btn.primary {
+  background: var(--tl-ink);
+  color: var(--tl-lane-a);
+  border-color: var(--tl-ink);
+}
+.tt-btn.primary:hover {
+  background: var(--tl-accent);
+  border-color: var(--tl-accent);
+}
+.tt-btn.icon-only {
+  padding: 0;
+  width: 36px;
+  justify-content: center;
+}
+.tt-btn .ic {
+  font-size: 14px;
+  line-height: 1;
+}
+.tt-btn.on {
+  background: var(--tl-ink);
+  color: var(--tl-lane-a);
+  border-color: var(--tl-ink);
+}
+
+/* ============================================================
+   STAGE / SCROLL / CANVAS
+   ============================================================ */
+.tt-stage {
+  position: relative;
+  overflow: hidden;
+  background: var(--tl-lane-a);
+}
+.tt-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(140, 98, 46, 0.4) transparent;
+  /* v6: stop horizontal bounce from extending the scroll area on mobile */
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.tt-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+.tt-scroll::-webkit-scrollbar-thumb {
+  background: rgba(140, 98, 46, 0.4);
+  border-radius: 999px;
+}
+[data-theme="dark"] .tt-scroll {
+  scrollbar-color: rgba(255, 226, 197, 0.32) transparent;
+}
+[data-theme="dark"] .tt-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 226, 197, 0.32);
+}
+
+.tt-canvas {
+  position: relative;
+  height: 100%;
+  min-height: 100%;
+  /* v6: explicit clip on vertical axis (prevents abs-positioned watermark
+     from extending vertical scroll). Horizontal MUST stay visible for scroll. */
+  overflow-x: clip;
+}
+
+/* ============================================================
+   AXES (top + bottom) — unified
+   ============================================================ */
+.tt-axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 36px;
+  background: var(--tl-axis-bg);
+  z-index: 10;
+}
+.tt-axis.top {
+  border-bottom: 1px solid var(--tl-line-strong);
+}
+.tt-axis.bottom {
+  top: auto;
+  bottom: 0;
+  border-top: 1px solid var(--tl-line-strong);
+}
+
+.tt-axis.top .tick {
+  position: absolute;
+  bottom: 0;
+  height: 8px;
+  width: 0;
+  border-left: 1px solid var(--tl-ink-soft);
+}
+.tt-axis.top .tick .label {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  transform: translateX(-50%);
+  font: var(--w-caption-2);
+  color: var(--tl-ink);
+  background: var(--tl-axis-bg);
+  padding: 0 6px;
+  white-space: nowrap;
+  letter-spacing: 0.0311em;
+}
+.tt-axis.bottom .tick {
+  position: absolute;
+  top: 0;
+  height: 8px;
+  width: 0;
+  border-left: 1px solid var(--tl-ink-soft);
+}
+.tt-axis.bottom .tick .label {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  transform: translateX(-50%);
+  font: var(--w-caption-2);
+  color: var(--tl-ink);
+  background: var(--tl-axis-bg);
+  padding: 0 6px;
+  white-space: nowrap;
+  letter-spacing: 0.0311em;
+}
+
+.tt-axis .bcad-divider {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  border-left: 1.5px dashed var(--tl-bcad);
+  pointer-events: none;
+}
+.tt-axis .bcad-divider .ad-label {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font: var(--w-caption-2);
+  color: var(--tl-bcad);
+  background: var(--tl-axis-bg);
+  padding: 0 4px;
+  letter-spacing: 0.0311em;
+}
+
+/* ============================================================
+   LANES + WATERMARK
+   ============================================================ */
+.tt-lanes {
+  position: absolute;
+  left: 0;
+  right: 0;
+  overflow: visible;
+}
+.tt-lane {
+  position: relative;
+  height: 25%;
+  border-bottom: 1px solid var(--tl-line);
+  background: var(--tl-lane-a);
+  color: var(--tl-ink);
+}
+.tt-lane.alt {
+  background: var(--tl-lane-b);
+  color: var(--tl-ink);
+}
+.tt-lane:last-child {
+  border-bottom: none;
+}
+
+/* Watermark — JS-set font-size (laneHpx * 0.66, capped 149px). Sits BEHIND the
+   diagonal pattern (z:0 vs pattern z:1). lanes 1,3 use --tl-lane-b text;
+   lanes 2,4 use --tl-lane-a text (set by .alt). */
+.tt-lane .watermark {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translate(0, -50%);
+  display: block;
+  padding: 0;
+  font-family: var(--w-font-sans);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.09em;
+  color: var(--tl-lane-b);
+  pointer-events: none;
+  user-select: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  z-index: 0;
+  filter: blur(5px);
+  opacity: 0.7;
+}
+.tt-lane.alt .watermark {
+  color: var(--tl-lane-a);
+}
+
+/* ============================================================
+   LANE PATTERN — over watermark (z:1)
+   ============================================================ */
+.tt-pattern {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+.tt-pattern svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* ============================================================
+   EDGE FADE MASK — asymmetric: left 180 / right 300
+   Applied to lane stack + both axis bars. Edge labels live OUTSIDE
+   so they stay 100% opaque.
+   ============================================================ */
+.tt-lanes,
+.tt-axis.top,
+.tt-axis.bottom {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 180px,
+    #000 calc(100% - 300px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 180px,
+    #000 calc(100% - 300px),
+    transparent 100%
+  );
+}
+
+/* ============================================================
+   EDGE LABELS — vertical KR + EN, anchored at OUTER edges
+   ============================================================ */
+.tt-edge-labels {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 36px;
+  bottom: 36px;
+  pointer-events: none;
+  z-index: 14;
+}
+.tt-edge-label {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  pointer-events: none;
+  user-select: none;
+}
+/* right 레이블은 right:0 인라인 스타일로 고정 — translateX 불필요 */
+.tt-edge-label.right {
+}
+.tt-edge-label .line {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  white-space: nowrap;
+  color: var(--tl-ink);
+  font-family: var(--w-font-sans);
+}
+.tt-edge-label .ko {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  line-height: 1;
+}
+.tt-edge-label .en {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--tl-ink-soft);
+  line-height: 1;
+}
+
+/* ============================================================
+   EVENT SEGMENTS (per-lane sliced)
+   ============================================================ */
+.tt-events {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.tt-event-seg {
+  position: absolute;
+  pointer-events: auto;
+  cursor: pointer;
+  transform-origin: top left;
+}
+.tt-event-seg.skewed {
+  transform: skewX(-12deg);
+}
+
+/* SPAN — coloured rectangle, ink border */
+.tt-event-seg.span .bar {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--tl-ink);
+  background: rgba(var(--tl-span-fill), var(--tl-fill, 0.2));
+  border-radius: 0px;
+}
+.tt-event-seg.span.selected .bar,
+.tt-event-seg.span:hover .bar {
+  border-color: var(--tl-accent);
+  outline: 2px solid rgba(201, 82, 15, 0.22);
+}
+
+/* segment joins — kill duplicated borders where event crosses lane boundary */
+.tt-event-seg.span.no-top .bar {
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.tt-event-seg.span.no-bottom .bar {
+  border-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* SPOT — vertical line + dot at top */
+.tt-event-seg.spot .line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: var(--tl-ink);
+  transform: translateX(-0.75px);
+}
+.tt-event-seg.spot .dot {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 5px;
+  height: 5px;
+  background: var(--tl-ink);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.tt-event-seg.spot.selected .line,
+.tt-event-seg.spot:hover .line {
+  background: var(--tl-accent);
+  width: 2.5px;
+  transform: translateX(-1.25px);
+}
+.tt-event-seg.spot.selected .dot,
+.tt-event-seg.spot:hover .dot {
+  background: var(--tl-accent);
+  width: 9px;
+  height: 9px;
+}
+/* hide the dot on continuation segments (only the topmost segment shows it) */
+.tt-event-seg.spot:not(.is-top) .dot {
+  display: none;
+}
+
+/* SPOT flip-up — when heightPx is negative the stick rises upward. Dot moves
+   to the bottom edge so it still marks the anchor `y`. */
+.tt-event-seg.spot.flip-up .dot {
+  top: auto;
+  bottom: 0;
+  transform: translate(-50%, 50%);
+}
+
+/* RELATED highlight — selected event's friends glow with 1px accent outline */
+.tt-event-seg.span.related .bar {
+  border-color: var(--tl-accent);
+  border-width: 1px;
+  box-shadow: 0 0 0 1px rgba(201, 82, 15, 0.18);
+}
+.tt-event-seg.spot.related .line {
+  background: var(--tl-accent);
+  width: 2px;
+  transform: translateX(-1px);
+}
+.tt-event-seg.spot.related .dot {
+  background: var(--tl-accent);
+  width: 7px;
+  height: 7px;
+}
+
+/* Labels layer (always upright, never transformed) */
+.tt-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+}
+.tt-labels .tt-label {
+  position: absolute;
+  pointer-events: none;
+}
+
+.tt-label {
+  font: var(--w-caption-1);
+  color: var(--tl-ink);
+  white-space: nowrap;
+  line-height: 1;
+  letter-spacing: 0.0252em;
+  transform-origin: left top;
+}
+.tt-label.right {
+  text-align: left;
+}
+.tt-label.left {
+  text-align: right;
+  transform-origin: right top;
+  transform: translateX(-100%);
+}
+.tt-label .yr {
+  display: block;
+  font: var(--w-caption-2);
+  color: var(--tl-ink-soft);
+  margin-top: 0;
+  letter-spacing: 0.0311em;
+}
+
+/* ============================================================
+   FOOTER (copyright only)
+   ============================================================ */
+.tt-footer {
+  display: flex;
+  align-items: center;
+  padding: 8px 18px;
+  border-top: 1px solid var(--tl-line);
+  background: var(--tl-lane-a);
+  font: var(--w-caption-1);
+  color: var(--tl-ink-soft);
+  z-index: 30;
+  justify-content: flex-end;
+}
+.tt-footer .copyright {
+  font: var(--w-caption-2);
+  color: var(--tl-ink-tertiary);
+  letter-spacing: 0.0311em;
+}
+
+/* ============================================================
+   SIDE PANEL (PC) — dark glass, fixed-width 300px
+   ============================================================ */
+.tt-side {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 300px;
+  background: var(--pn-bg);
+  color: var(--pn-fg);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border-left: 1px solid var(--pn-border);
+  z-index: 40;
+  overflow: auto;
+  padding: 18px 20px;
+  transform: translateX(100%);
+  transition: transform 240ms cubic-bezier(0.2, 0, 0, 1);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.18);
+}
+.tt-side.open {
+  transform: translateX(0);
+}
+.tt-side.edit {
+  background: var(--pn-bg-edit);
+}
+
+.tt-side .ed-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.tt-side .ed-headtxt {
+  min-width: 0;
+  flex: 1;
+}
+.tt-side .ed-meta {
+  font: var(--w-caption-2);
+  color: var(--pn-fg-tertiary);
+  letter-spacing: 0.0311em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+/* Title is a button — clicking scrolls canvas to event */
+.tt-side .ed-title {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  color: var(--pn-fg);
+  font: var(--w-heading-1);
+  letter-spacing: -0.0194em;
+  cursor: pointer;
+  display: inline-block;
+}
+.tt-side .ed-title:hover {
+  color: var(--tl-accent);
+}
+.tt-side .ed-yr {
+  font: var(--w-caption-1);
+  color: var(--pn-fg-soft);
+  margin-top: 2px;
+  letter-spacing: 0.0311em;
+}
+.tt-side .close {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--pn-fg);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tt-side .close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Mode tabs */
+.mode-tabs {
+  display: inline-flex;
+  border: 1px solid var(--pn-border);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 4px 0 14px;
+}
+.mode-tabs button {
+  border: 0;
+  background: transparent;
+  padding: 7px 18px;
+  font: var(--w-label-2);
+  color: var(--pn-fg-soft);
+  cursor: pointer;
+}
+.mode-tabs button.on {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--pn-fg);
+}
+
+/* View body */
+.view-body .desc {
+  margin: 0 0 16px;
+  font: var(--w-body-2);
+  color: var(--pn-fg);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.view-body .meta-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--pn-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.view-body .meta-grid > div {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  font: var(--w-caption-1);
+}
+.view-body .meta-grid .k {
+  color: var(--pn-fg-tertiary);
+  letter-spacing: 0.0252em;
+}
+.view-body .meta-grid .v {
+  color: var(--pn-fg);
+}
+.view-body .conn-block {
+  margin-top: 18px;
+}
+.view-body .block-title {
+  font: var(--w-caption-2);
+  color: var(--pn-fg-tertiary);
+  letter-spacing: 0.0311em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.view-body .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.view-body .conn-empty {
+  font: var(--w-caption-1);
+  color: var(--pn-fg-tertiary);
+  padding: 4px 0;
+}
+.view-body .chip.chip-link {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--pn-border);
+  color: var(--pn-fg);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: var(--w-caption-1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.view-body .chip.chip-link:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.view-body .chip.chip-link .chip-yr {
+  font: var(--w-caption-2);
+  color: var(--pn-fg-tertiary);
+  letter-spacing: 0.0311em;
+}
+
+/* Edit body */
+.edit-body .group {
+  border-top: 1px solid var(--pn-border);
+  padding-top: 14px;
+  margin-top: 14px;
+}
+.edit-body .group:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+.edit-body .group-title {
+  font: var(--w-caption-2);
+  color: var(--pn-fg);
+  letter-spacing: 0.0311em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.edit-body .row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0;
+}
+.edit-body .row > label {
+  color: var(--pn-fg-soft);
+  font: var(--w-caption-1);
+}
+.edit-body .row > label:empty {
+  min-height: 1px;
+}
+.edit-body .row.range-row {
+  grid-template-columns: 96px 1fr;
+}
+.edit-body .row.range-row input[type="range"] {
+  width: 100%;
+  /* v6: accent-colored range slider (replaces native blue) */
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--pn-input-border);
+  border-radius: 999px;
+  outline: none;
+  accent-color: var(--tl-accent);
+}
+.edit-body .row.range-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--tl-accent);
+  border: 2px solid #fff;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.edit-body .row.range-row input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--tl-accent);
+  border: 2px solid #fff;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.edit-body .field {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--pn-input-border);
+  background: var(--pn-input-bg);
+  border-radius: 6px;
+  padding: 0 10px;
+  height: 32px;
+  color: var(--pn-fg);
+  font: var(--w-label-2);
+  gap: 6px;
+}
+.edit-body .field input,
+.edit-body .field textarea {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--pn-fg);
+  font: inherit;
+  width: 100%;
+}
+.edit-body .field .field-sub {
+  font: var(--w-caption-2);
+  color: var(--pn-fg-tertiary);
+  white-space: nowrap;
+}
+/* ±1 step buttons inside NumberField */
+.edit-body .field.number-field {
+  padding: 0 4px;
+  gap: 2px;
+}
+.edit-body .field.number-field input {
+  text-align: center;
+  min-width: 0;
+}
+.edit-body .step-btn {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--pn-fg-soft);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.edit-body .step-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--pn-fg);
+}
+.edit-body .field-textarea {
+  height: auto;
+  padding: 8px 10px;
+  align-items: stretch;
+}
+.edit-body .field-textarea textarea {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.45;
+}
+
+.edit-body .seg {
+  display: inline-flex;
+  border: 1px solid var(--pn-input-border);
+  border-radius: 6px;
+  overflow: hidden;
+  width: 100%;
+  background: var(--pn-input-bg);
+}
+.edit-body .seg button {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  color: var(--pn-fg-soft);
+  padding: 7px 0;
+  font: var(--w-caption-1);
+  cursor: pointer;
+  border-right: 1px solid var(--pn-input-border);
+}
+.edit-body .seg button:last-child {
+  border-right: 0;
+}
+.edit-body .seg button.on {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--pn-fg);
+}
+
+.edit-body .toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  font: var(--w-caption-1);
+  color: var(--pn-fg);
+  cursor: pointer;
+  user-select: none;
+}
+.edit-body .check {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--pn-input-border);
+  background: var(--pn-input-bg);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pn-fg);
+  font-size: 11px;
+  flex: 0 0 auto;
+}
+.edit-body .check.on {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.edit-body .vis-row {
+  display: flex;
+  gap: 6px;
+}
+.edit-body .vis-cell {
+  flex: 1;
+  height: 32px;
+  border: 1px solid var(--pn-input-border);
+  background: var(--pn-input-bg);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--w-caption-2);
+  color: var(--pn-fg-soft);
+  cursor: pointer;
+}
+.edit-body .vis-cell.on {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: var(--pn-fg);
+}
+
+/* Connection editor */
+.edit-body .conn-list {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.edit-body .conn-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--pn-input-border);
+  background: var(--pn-input-bg);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: var(--w-caption-1);
+}
+.edit-body .conn-item .y {
+  font: var(--w-caption-2);
+  color: var(--pn-fg-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.edit-body .conn-item .conn-remove {
+  width: 22px;
+  height: 22px;
+  margin-left: 8px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--pn-fg-soft);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+}
+.edit-body .conn-item .conn-remove:hover {
+  background: rgba(255, 120, 120, 0.3);
+  color: #fff;
+}
+.edit-body .conn-empty-inline {
+  font: var(--w-caption-1);
+  color: var(--pn-fg-tertiary);
+  padding: 4px 0;
+}
+.edit-body .conn-search {
+  position: relative;
+  margin-top: 8px;
+}
+.edit-body .conn-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--pn-border);
+  border-radius: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+.edit-body .conn-cand {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--pn-fg);
+  cursor: pointer;
+  font: var(--w-caption-1);
+  text-align: left;
+}
+.edit-body .conn-cand:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.edit-body .conn-cand .cand-yr {
+  font: var(--w-caption-2);
+  color: var(--pn-fg-tertiary);
+}
+
+/* ============================================================
+   MOBILE CENTERED MODAL (info only, no edit on mobile)
+   Inherits side-panel visual style.
+   ============================================================ */
+.tt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+.tt-modal-backdrop.open {
+  display: flex;
+}
+.tt-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  color: var(--pn-fg);
+  border: 1px solid var(--pn-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.tt-modal .ed-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex: 0 0 auto;
+}
+.tt-modal .ed-headtxt {
+  min-width: 0;
+  flex: 1;
+}
+.tt-modal .ed-meta {
+  font: var(--w-caption-2);
+  color: var(--pn-fg-tertiary);
+  letter-spacing: 0.0311em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.tt-modal .ed-title {
+  font: var(--w-heading-1);
+  color: var(--pn-fg);
+  letter-spacing: -0.0194em;
+  cursor: default; /* Mobile: title NOT clickable */
+}
+.tt-modal .ed-yr {
+  font: var(--w-caption-1);
+  color: var(--pn-fg-soft);
+  margin-top: 2px;
+  letter-spacing: 0.0311em;
+}
+.tt-modal .close {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--pn-fg);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.tt-modal .close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.tt-modal .modal-scroll {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  padding-right: 4px;
+}
+.tt-modal .desc {
+  font: var(--w-body-2);
+  color: var(--pn-fg);
+  line-height: 1.6;
+  text-wrap: pretty;
+  margin: 0 0 16px;
+}
+.tt-modal .meta-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--pn-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.tt-modal .meta-grid > div {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  font: var(--w-caption-1);
+}
+.tt-modal .meta-grid .k {
+  color: var(--pn-fg-tertiary);
+  letter-spacing: 0.0252em;
+}
+.tt-modal .meta-grid .v {
+  color: var(--pn-fg);
+}
+.tt-modal .conn-block {
+  margin-top: 14px;
+}
+.tt-modal .block-title {
+  font: var(--w-caption-2);
+  color: var(--pn-fg-tertiary);
+  letter-spacing: 0.0311em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.tt-modal .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tt-modal .chip.chip-link {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--pn-border);
+  color: var(--pn-fg);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: var(--w-caption-1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.tt-modal .chip.chip-link:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.tt-modal .chip.chip-link .chip-yr {
+  font: var(--w-caption-2);
+  color: var(--pn-fg-tertiary);
+  letter-spacing: 0.0311em;
+}
+.tt-modal .conn-empty {
+  font: var(--w-caption-1);
+  color: var(--pn-fg-tertiary);
+}
+
+/* ============================================================
+   PASSWORD MODAL (extends .tt-modal)
+   ============================================================ */
+.tt-modal.pw-modal {
+  max-width: 360px;
+  max-height: none;
+  padding: 22px 24px;
+}
+.pw-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+.pw-body .pw-q {
+  font: var(--w-body-2);
+  color: var(--pn-fg);
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--pn-border);
+}
+.pw-body .pw-input {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--pn-input-border);
+  background: var(--pn-input-bg);
+  color: var(--pn-fg);
+  font: var(--w-body-2);
+  letter-spacing: 0.06em;
+}
+.pw-body .pw-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.14);
+}
+.pw-body .pw-err {
+  font: var(--w-caption-1);
+  color: #ff9999;
+  padding: 4px 2px;
+}
+.pw-body .pw-submit {
+  height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1a1a1a;
+  font: var(--w-label-2);
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.pw-body .pw-submit:hover {
+  background: #fff;
+}
+.pw-body .pw-link {
+  background: transparent;
+  border: 0;
+  color: var(--pn-fg-soft);
+  font: var(--w-caption-1);
+  cursor: pointer;
+  padding: 6px 0 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  align-self: center;
+}
+.pw-body .pw-link:hover {
+  color: var(--pn-fg);
+}
+
+/* ============================================================
+   MOBILE responsive — layout stays HORIZONTAL (no vertical flip).
+   We only compact header spacing + add safe-area-aware footer padding.
+   ============================================================ */
+@media (max-width: 768px) {
+  .tt-header {
+    padding: 10px 12px;
+  }
+  .tt-header .top-row {
+    gap: 8px;
+  }
+  /* v6: shrink brand + push TIMETABLE to a 2nd line so header controls fit */
+  .brand-name {
+    font-size: 1.4em;
+    flex-wrap: wrap;
+    line-height: 1.05;
+  }
+  .brand-name .b-timetable {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+  .tt-spacer {
+    display: block;
+    flex: 1;
+  }
+  .tt-controls.desktop-only {
+    display: none !important;
+  }
+  .tt-header .mobile-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+  .tt-footer {
+    padding-left: 12px;
+    padding-right: 12px;
+    display: block;
+    /* padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px) + 50px); */
+  }
+}
+@media (min-width: 769px) {
+  .tt-header .mobile-controls {
+    display: none;
+  }
+  /* .tt-footer { padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); } */
+}
+
+/* ============================================================
+   Continuous zoom transitions
+   ============================================================ */
+.tt-event-seg,
+.tt-label,
+.tt-axis .tick,
+.tt-axis .bcad-divider {
+  transition:
+    left 200ms cubic-bezier(0.2, 0, 0, 1),
+    top 200ms cubic-bezier(0.2, 0, 0, 1),
+    width 200ms cubic-bezier(0.2, 0, 0, 1),
+    height 200ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 200ms ease;
+}

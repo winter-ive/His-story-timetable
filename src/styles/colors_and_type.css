@@ -1,0 +1,243 @@
+/* Wanted Design System — Colors & Type
+ * Source: Wanted Design System (Community).fig
+ * Primary brand: #0066FF (Blue/50)
+ * Primary fonts: Pretendard JP, Wanted Sans (display only)
+ */
+
+/* Webfonts ------------------------------------------------------- */
+/* Pretendard (JP variant maps to standard Pretendard for KR/EN/JP coverage)
+ * SUBSTITUTION NOTE: We use the open-source Pretendard CDN. Pretendard JP is
+ * a near-identical superset for JP glyphs; visually equivalent for KR/EN.
+ */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css");
+
+/* Wanted Sans (open source, hosted by Wanted Lab) */
+@font-face {
+  font-family: "Wanted Sans";
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+  src: url("https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/woff2/WantedSansVariable.woff2") format("woff2-variations");
+}
+
+:root {
+  /* ===== ATOMIC COLORS ===== */
+  /* Common */
+  --w-common-100: #ffffff;
+  --w-common-0:   #000000;
+
+  /* Neutral (warm grayscale) */
+  --w-neutral-99: #fafafa;
+  --w-neutral-95: #f1f1f1;
+  --w-neutral-90: #e3e3e3;
+  --w-neutral-80: #c8c8c8;
+  --w-neutral-70: #adadad;
+  --w-neutral-60: #919191;
+  --w-neutral-50: #767676;
+  --w-neutral-40: #5b5b5b;
+  --w-neutral-30: #404040;
+  --w-neutral-22: #2e2f33;
+  --w-neutral-20: #292929;
+  --w-neutral-15: #1f1f1f;
+  --w-neutral-10: #171717;
+  --w-neutral-5:  #0a0a0a;
+
+  /* Cool Neutral (slight blue cast) */
+  --w-cn-99: #fcfcfd;
+  --w-cn-98: #f7f7f8;
+  --w-cn-97: #f4f4f5;
+  --w-cn-95: #ececef;
+  --w-cn-90: #dbdcdf;
+  --w-cn-80: #c2c4c8;
+  --w-cn-70: #aeb0b6;
+  --w-cn-60: #989ba2;
+  --w-cn-50: #80838b;
+  --w-cn-40: #70737c;
+  --w-cn-30: #595a63;
+  --w-cn-25: #4a4b53;
+  --w-cn-22: #3c3d42;
+  --w-cn-20: #37383c;
+  --w-cn-17: #2e2f33;
+  --w-cn-15: #25262a;
+  --w-cn-10: #1b1c1e;
+  --w-cn-7:  #141518;
+  --w-cn-5:  #0e0f12;
+  --w-cn-0:  #000000;
+
+  /* Blue — brand */
+  --w-blue-99: #f5f9ff;
+  --w-blue-95: #e4eefe;       /* eaf2fe close */
+  --w-blue-90: #cee0ff;
+  --w-blue-80: #9cc1ff;
+  --w-blue-70: #6ba2ff;
+  --w-blue-65: #5294ff;
+  --w-blue-60: #3385ff;
+  --w-blue-55: #1a76ff;
+  --w-blue-50: #0066ff;       /* PRIMARY */
+  --w-blue-45: #005eeb;
+  --w-blue-40: #0055d4;
+  --w-blue-30: #0041a3;
+  --w-blue-20: #002d70;
+  --w-blue-10: #001a40;
+
+  /* Red — danger */
+  --w-red-99: #fff5f5;
+  --w-red-95: #fee4e4;
+  --w-red-90: #fecaca;
+  --w-red-80: #fc9696;
+  --w-red-70: #fb6464;
+  --w-red-60: #ff4242;        /* primary danger */
+  --w-red-50: #e11d1d;
+  --w-red-40: #b41313;
+  --w-red-30: #870e0e;
+  --w-red-20: #5c0808;
+  --w-red-10: #2e0303;
+
+  /* Green — success */
+  --w-green-99: #f0fdf4;
+  --w-green-95: #dcfce7;
+  --w-green-90: #bbf7d0;
+  --w-green-80: #86efac;
+  --w-green-70: #4ade80;
+  --w-green-60: #00bf40;       /* primary success */
+  --w-green-50: #00992f;
+  --w-green-40: #007424;
+  --w-green-30: #00521a;
+  --w-green-20: #003311;
+  --w-green-10: #001a08;
+
+  /* Violet */
+  --w-violet-99: #faf7ff;
+  --w-violet-90: #e9deff;
+  --w-violet-70: #b896ff;
+  --w-violet-60: #9747ff;     /* accent */
+  --w-violet-50: #6541f2;
+  --w-violet-40: #5028c5;
+
+  /* Cyan / Light Blue / Lime / Red Orange — accents */
+  --w-cyan-50:  #0098b2;
+  --w-lblue-50: #3385ff;
+  --w-lime-37:  #5d8a00;
+  --w-orange-40:#c44d10;
+
+  /* ===== SEMANTIC TOKENS — LIGHT ===== */
+  /* Foreground */
+  --w-fg-primary:    rgba(23, 23, 25, 1);          /* #171719 */
+  --w-fg-strong:     rgba(27, 28, 30, 1);
+  --w-fg-secondary:  rgba(46, 47, 51, 0.88);
+  --w-fg-tertiary:   rgba(55, 56, 60, 0.61);
+  --w-fg-disabled:   rgba(55, 56, 60, 0.28);
+  --w-fg-on-primary: #ffffff;
+  --w-fg-brand:      var(--w-blue-50);
+  --w-fg-danger:     var(--w-red-60);
+  --w-fg-success:    var(--w-green-60);
+
+  /* Background */
+  --w-bg-base:       #ffffff;
+  --w-bg-subtle:     var(--w-cn-98);     /* #f7f7f8 */
+  --w-bg-muted:      var(--w-cn-97);     /* #f4f4f5 */
+  --w-bg-elevated:   #ffffff;
+  --w-bg-inverse:    var(--w-neutral-10);
+  --w-bg-brand:      var(--w-blue-50);
+  --w-bg-brand-soft: #eaf2fe;
+  --w-bg-danger-soft:#ffeaea;
+  --w-bg-success-soft:#e6f9ed;
+
+  /* Border / line */
+  --w-line-soft:     rgba(112, 115, 124, 0.08);
+  --w-line:          rgba(112, 115, 124, 0.22);
+  --w-line-strong:   rgba(112, 115, 124, 0.40);
+  --w-line-inverse:  rgba(255, 255, 255, 0.22);
+
+  /* Shadow tokens */
+  --w-shadow-1: 0 1px 2px rgba(23,23,23,0.06), 0 0 0 1px rgba(23,23,23,0.04);
+  --w-shadow-2: 0 4px 12px rgba(23,23,23,0.07), 0 1px 3px rgba(23,23,23,0.06);
+  --w-shadow-3: 0 12px 32px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.06);
+  --w-shadow-4: 0 24px 48px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.08);
+  --w-shadow-focus: 0 0 0 3px rgba(0,102,255,0.20);
+
+  /* Radius */
+  --w-radius-xs: 4px;
+  --w-radius-sm: 6px;
+  --w-radius-md: 8px;
+  --w-radius-lg: 12px;
+  --w-radius-xl: 16px;
+  --w-radius-2xl: 24px;
+  --w-radius-3xl: 32px;
+  --w-radius-pill: 999px;
+
+  /* Spacing — Wanted uses an 8px-major / 4px-minor scale */
+  --w-space-2:  2px;
+  --w-space-4:  4px;
+  --w-space-6:  6px;
+  --w-space-8:  8px;
+  --w-space-10: 10px;
+  --w-space-12: 12px;
+  --w-space-16: 16px;
+  --w-space-20: 20px;
+  --w-space-24: 24px;
+  --w-space-32: 32px;
+  --w-space-40: 40px;
+  --w-space-48: 48px;
+  --w-space-64: 64px;
+  --w-space-96: 96px;
+  --w-space-128: 128px;
+
+  /* ===== TYPOGRAPHY ===== */
+  --w-font-sans: "Pretendard Variable", "Pretendard JP", "Pretendard",
+                  -apple-system, BlinkMacSystemFont, system-ui,
+                  "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --w-font-display: "Wanted Sans Variable", "Wanted Sans",
+                    "Pretendard Variable", "Pretendard", sans-serif;
+  --w-font-mono: "SF Mono", "JetBrains Mono", ui-monospace,
+                  Menlo, Consolas, monospace;
+
+  /* Type scale — base atomic styles */
+  --w-display-2: 700 40px/1.30 var(--w-font-sans); /* ls -0.0282em */
+  --w-display-3: 700 36px/1.334 var(--w-font-sans);/* ls -0.027em */
+  --w-title-1:   700 32px/1.375 var(--w-font-sans);/* ls -0.0253em */
+  --w-title-2:   700 28px/1.358 var(--w-font-sans);/* ls -0.0236em */
+  --w-title-3:   700 24px/1.334 var(--w-font-sans);/* ls -0.023em */
+  --w-heading-1: 700 22px/1.364 var(--w-font-sans);/* ls -0.0194em */
+  --w-heading-2: 700 20px/1.4   var(--w-font-sans);/* ls -0.012em */
+  --w-headline-1:700 18px/1.445 var(--w-font-sans);/* ls -0.002em */
+  --w-headline-2:600 17px/1.412 var(--w-font-sans);/* ls 0 */
+  --w-body-1:    500 16px/1.5   var(--w-font-sans);/* ls 0.0057em */
+  --w-body-1-r:  500 16px/1.625 var(--w-font-sans);
+  --w-body-2:    500 15px/1.467 var(--w-font-sans);/* ls 0.0096em */
+  --w-body-2-r:  500 15px/1.6   var(--w-font-sans);
+  --w-label-1:   500 14px/1.429 var(--w-font-sans);/* ls 0.0145em */
+  --w-label-1-r: 500 14px/1.571 var(--w-font-sans);
+  --w-label-2:   500 13px/1.385 var(--w-font-sans);/* ls 0.0194em */
+  --w-caption-1: 500 12px/1.334 var(--w-font-sans);/* ls 0.0252em */
+  --w-caption-2: 500 11px/1.273 var(--w-font-sans);/* ls 0.0311em */
+}
+
+/* ===== BASE ELEMENT STYLES ===== */
+html, body {
+  font: var(--w-body-1);
+  letter-spacing: 0.0057em;
+  color: var(--w-fg-primary);
+  background: var(--w-bg-base);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1 { font: var(--w-title-1); letter-spacing: -0.0253em; margin: 0; }
+h2 { font: var(--w-title-3); letter-spacing: -0.023em;  margin: 0; }
+h3 { font: var(--w-heading-1); letter-spacing: -0.0194em; margin: 0; }
+h4 { font: var(--w-headline-1); letter-spacing: -0.002em; margin: 0; }
+h5 { font: var(--w-headline-2); margin: 0; }
+p  { font: var(--w-body-1); letter-spacing: 0.0057em; margin: 0; }
+small { font: var(--w-caption-1); letter-spacing: 0.0252em; color: var(--w-fg-tertiary); }
+code, pre { font-family: var(--w-font-mono); }
+a { color: var(--w-blue-50); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+/* Big editorial display */
+.w-hero    { font: var(--w-display-2); letter-spacing: -0.0282em; }
+.w-display { font: var(--w-display-3); letter-spacing: -0.027em; }
+
+/* Wanted Sans is reserved for display moments (large numbers, big logo lockups) */
+.w-display-brand { font-family: var(--w-font-display); font-weight: 800; }
