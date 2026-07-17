@@ -20,7 +20,7 @@ import {
 // ============================================================
 // Google Sheets API endpoint
 // ============================================================
-const SHEETS_API = "https://script.google.com/macros/s/AKfycbwY2234S5C6LQGxBvOt2GPlUEC1x1cfS958YayfGEgyvSctWyQsU9qqVNCSeSt9j1yZ/exec";
+const SHEETS_API = "/api/sheets";
 
 function parseEventsFromSheets(rows) {
   return rows.map((ev) => ({
