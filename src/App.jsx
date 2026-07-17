@@ -7,13 +7,8 @@ import {
   interpZoom,
   clamp,
   viewCenterYear,
-  loadPersistedEvents,
-  loadPersistedConnections,
-  saveEventsThrottled,
-  saveConnections,
 } from "./utils.js";
 import {
-  EVENTS_INITIAL,
   CONNECTIONS_INITIAL,
   RANGE,
   ZOOM_LEVELS,
@@ -21,6 +16,49 @@ import {
   LANE_H,
   TOTAL_H,
 } from "./data.js";
+
+// ============================================================
+// Google Sheets API endpoint
+// ============================================================
+const SHEETS_API = "https://script.google.com/macros/s/AKfycbwY2234S5C6LQGxBvOt2GPlUEC1x1cfS958YayfGEgyvSctWyQsU9qqVNCSeSt9j1yZ/exec";
+
+function parseEventsFromSheets(rows) {
+  return rows.map((ev) => ({
+    ...ev,
+    start: Number(ev.start),
+    end: ev.end !== "" && ev.end != null ? Number(ev.end) : undefined,
+    y: Number(ev.y),
+    heightPx: Number(ev.heightPx),
+    z: Number(ev.z),
+    zoomVisibility: [true, true, true, true, true],
+  }));
+}
+
+async function fetchEventsFromSheets() {
+  const res = await fetch(SHEETS_API);
+  const data = await res.json();
+  return parseEventsFromSheets(data.events);
+}
+
+async function saveEventsToSheets(events) {
+  const payload = events.map((ev) => ({
+    id: ev.id,
+    lane: ev.lane,
+    type: ev.type,
+    start: ev.start,
+    end: ev.end ?? "",
+    title: ev.title,
+    y: ev.y,
+    heightPx: ev.heightPx,
+    z: ev.z ?? 1,
+    labelAlign: ev.labelAlign ?? "right",
+    description: ev.description ?? "",
+  }));
+  await fetch(SHEETS_API, {
+    method: "POST",
+    body: JSON.stringify({ events: payload }),
+  });
+}
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -53,13 +91,12 @@ function ZoomControl({ zoom, levelInfo, onStep }) {
 export default function App() {
   const isMobile = useIsMobile();
 
-  // E-1: load persisted state or fall back to initial data
-  const [events, setEvents] = useState(() =>
-    loadPersistedEvents(EVENTS_INITIAL),
-  );
-  const [connections, setConnections] = useState(() =>
-    loadPersistedConnections(CONNECTIONS_INITIAL),
-  );
+  // ── 데이터 로딩 상태 ──────────────────────────────────────
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState("idle"); // "idle" | "saving" | "saved" | "error"
+
+  const [connections, setConnections] = useState(CONNECTIONS_INITIAL);
   const [selectedId, setSelectedId] = useState(null);
   const [panelMode, setPanelMode] = useState("view");
   const [zoom, setZoom] = useState(2);
@@ -76,16 +113,28 @@ export default function App() {
   const pwCallbackRef = useRef(null);
   const scrollRef = useRef(null);
   const canvasRef = useRef(null);
-  // scale ref: 항상 최신 scale을 동기적으로 읽기 위해 사용 (zoom 이벤트 핸들러 stale closure 방지)
   const scaleRef = useRef(interpZoom(2).scale);
   const zoomRef = useRef(2);
-  // pinch gesture state — 제스처 시작 시점의 스냅샷
   const pinchRef = useRef(null);
-  // zoom commit 후 CSS transform 제거 신호 (useLayoutEffect에서 처리)
   const pendingTransformClearRef = useRef(false);
+  // 저장 디바운스용 타이머
+  const saveTimerRef = useRef(null);
 
   useEffect(() => {
     ensureSeed();
+  }, []);
+
+  // ── Google Sheets에서 초기 데이터 로드 ───────────────────
+  useEffect(() => {
+    fetchEventsFromSheets()
+      .then((evs) => {
+        setEvents(evs);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Sheets 로드 실패:", err);
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -96,29 +145,36 @@ export default function App() {
     localStorage.setItem("tt-theme", darkMode ? "dark" : "light");
   }, [darkMode]);
 
-  // E-1: throttled save on events change
+  // ── events 변경 시 Sheets에 디바운스 저장 (2초) ──────────
+  const isMounted = useRef(false);
   useEffect(() => {
-    saveEventsThrottled(events);
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return; // 초기 로드 시에는 저장 안 함
+    }
+    if (events.length === 0) return;
+    clearTimeout(saveTimerRef.current);
+    setSaveStatus("saving");
+    saveTimerRef.current = setTimeout(() => {
+      saveEventsToSheets(events)
+        .then(() => setSaveStatus("saved"))
+        .catch(() => setSaveStatus("error"));
+    }, 2000);
   }, [events]);
-  useEffect(() => {
-    saveConnections(connections);
-  }, [connections]);
 
   const levelInfo = useMemo(() => interpZoom(zoom), [zoom]);
   const scale = levelInfo.scale;
-  // scaleRef / zoomRef 동기화 — 이벤트 핸들러에서 최신 값을 클로저 없이 읽음
   scaleRef.current = scale;
   zoomRef.current = zoom;
 
-  // zoom commit 완료 직후(페인트 직전)에 CSS transform 제거
-  // → 새 canvas width + 올바른 scrollLeft + transform 없음이 한 프레임에 확정됨
   useLayoutEffect(() => {
     if (pendingTransformClearRef.current && canvasRef.current) {
-      canvasRef.current.style.transform = '';
-      canvasRef.current.style.transformOrigin = '';
+      canvasRef.current.style.transform = "";
+      canvasRef.current.style.transformOrigin = "";
       pendingTransformClearRef.current = false;
     }
   }, [zoom]);
+
   const selected = events.find((e) => e.id === selectedId) || null;
 
   const relatedIds = useMemo(() => {
@@ -131,7 +187,7 @@ export default function App() {
     return out;
   }, [selectedId, connections]);
 
-  // Initial scroll to AD 0 — double rAF to ensure canvas dimensions are settled
+  // Initial scroll to AD 0
   useEffect(() => {
     const sc = scrollRef.current;
     if (!sc) return;
@@ -184,7 +240,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Drag-to-scroll (canvas pan)
+  // Drag-to-scroll
   useEffect(() => {
     const sc = scrollRef.current;
     if (!sc) return;
@@ -221,7 +277,7 @@ export default function App() {
     };
   }, []);
 
-  // B-1: wheel zoom with cursor anchor (ctrl/cmd + scroll)
+  // Wheel zoom + pinch zoom
   useEffect(() => {
     const sc = scrollRef.current;
     if (!sc) return;
@@ -231,12 +287,11 @@ export default function App() {
       e.preventDefault();
       const delta = -e.deltaY * 0.005;
       const rect = sc.getBoundingClientRect();
-      const viewOffset = e.clientX - rect.left; // 뷰포트 내 커서 x (고정점)
+      const viewOffset = e.clientX - rect.left;
 
       setZoom((prevZoom) => {
         const nextZoom = clamp(prevZoom + delta, 1, 5);
         const ratio = interpZoom(nextZoom).scale / interpZoom(prevZoom).scale;
-        // 고정점 공식: newScrollLeft = (scrollLeft + viewOffset) * ratio - viewOffset
         const targetScroll = (sc.scrollLeft + viewOffset) * ratio - viewOffset;
         requestAnimationFrame(() => {
           if (sc) sc.scrollLeft = Math.max(0, targetScroll);
@@ -245,8 +300,6 @@ export default function App() {
       });
     };
 
-    // B-1: pinch zoom — CSS transform으로 제스처 중 시각적 스케일 처리
-    // React state는 제스처 끝에 한 번만 업데이트 → 스크롤 점프 없음
     const onTouchStart = (e) => {
       if (e.touches.length !== 2) return;
       const dist = Math.hypot(
@@ -255,7 +308,6 @@ export default function App() {
       );
       const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
       const rect = sc.getBoundingClientRect();
-      // 캔버스 좌표계 내 핀치 중심 (고정점)
       const canvasAnchorX = sc.scrollLeft + (midX - rect.left);
       pinchRef.current = {
         startDist: dist,
@@ -278,8 +330,6 @@ export default function App() {
 
       const canvas = canvasRef.current;
       if (!canvas) return;
-
-      // CSS transform으로 시각적 스케일만 변경 — DOM 레이아웃/스크롤 불변
       const { canvasAnchorX } = pinchRef.current;
       canvas.style.transformOrigin = `${canvasAnchorX}px center`;
       canvas.style.transform = `scaleX(${ratio})`;
@@ -289,7 +339,6 @@ export default function App() {
       pinchRef.current = null;
       if (!p) return;
 
-      // 제스처 누적 ratio → zoom 레벨 변환 (제스처 시작 기준)
       const { cumulativeRatio, viewOffset, startScrollLeft, startZoomLevel } = p;
       const nextZoom = clamp(startZoomLevel + (cumulativeRatio - 1) * 3, 1, 5);
       const oldScale = interpZoom(startZoomLevel).scale;
@@ -297,21 +346,16 @@ export default function App() {
       const scaleRatio = newScale / oldScale;
       const targetScroll = Math.max(0, (startScrollLeft + viewOffset) * scaleRatio - viewOffset);
 
-      // ① scrollLeft를 먼저 동기적으로 확정
       sc.scrollLeft = targetScroll;
-
-      // ② CSS transform은 React re-render 후 useLayoutEffect(zoom)에서 제거
-      //    → 새 canvas width + 확정된 scrollLeft + transform 제거가 한 프레임에 처리됨
       pendingTransformClearRef.current = true;
       setZoom(nextZoom);
     };
 
     const onTouchCancel = () => {
-      // 제스처 취소 시 CSS transform 즉시 제거
       pinchRef.current = null;
       if (canvasRef.current) {
-        canvasRef.current.style.transform = '';
-        canvasRef.current.style.transformOrigin = '';
+        canvasRef.current.style.transform = "";
+        canvasRef.current.style.transformOrigin = "";
       }
     };
 
@@ -327,7 +371,7 @@ export default function App() {
       sc.removeEventListener("touchend", onTouchEnd);
       sc.removeEventListener("touchcancel", onTouchCancel);
     };
-  }, []); // scaleRef.current으로 최신 scale을 읽으므로 scale 의존성 불필요
+  }, []);
 
   const stepZoom = useCallback(
     (dir) => setZoom((z) => clamp(Math.round((z + dir) * 2) / 2, 1, 5)),
@@ -423,7 +467,7 @@ export default function App() {
     if (cb) cb();
   }, []);
 
-  // F-1: Add event — defaults to center of viewport
+  // F-1: Add event
   const handleAddEvent = useCallback(() => {
     if (!isAuthed) {
       requestAuth(() => handleAddEvent());
@@ -462,7 +506,6 @@ export default function App() {
     setSelectedId(null);
   }, [selectedId]);
 
-  // C: Drag editing — only when side panel is in edit mode and authed
   const editingId = panelMode === "edit" && isAuthed ? selectedId : null;
 
   const handleDragUpdate = useCallback((evId, dYear, dPx) => {
@@ -489,6 +532,12 @@ export default function App() {
     setSelectedId(null);
   };
 
+  // ── 저장 상태 표시 텍스트 ─────────────────────────────────
+  const saveStatusLabel =
+    saveStatus === "saving" ? "저장 중…" :
+    saveStatus === "saved"  ? "저장됨 ✓" :
+    saveStatus === "error"  ? "저장 실패 ✗" : "";
+
   return (
     <div className="app">
       <header className="tt-header">
@@ -505,6 +554,11 @@ export default function App() {
           {!isMobile && <div className="tt-spacer" />}
           {!isMobile && (
             <div className="tt-controls desktop-only">
+              {saveStatusLabel && (
+                <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>
+                  {saveStatusLabel}
+                </span>
+              )}
               <ZoomControl
                 zoom={zoom}
                 levelInfo={levelInfo}
@@ -552,24 +606,33 @@ export default function App() {
       </header>
 
       <main className="tt-stage" onClick={onStageClick}>
-        <div className="tt-scroll" ref={scrollRef}>
-          <HorizontalTimeline
-            events={events}
-            connections={connections}
-            range={RANGE}
-            scale={scale}
-            level={zoom}
-            levelInfo={levelInfo}
-            onSelect={handleSelect}
-            selectedId={selectedId}
-            relatedIds={relatedIds}
-            scrollLeft={scrollLeft}
-            viewW={viewW}
-            editingId={editingId}
-            onDragUpdate={handleDragUpdate}
-            canvasRef={canvasRef}
-          />
-        </div>
+        {loading ? (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            height: "100%", fontSize: "1rem", opacity: 0.6
+          }}>
+            데이터 불러오는 중…
+          </div>
+        ) : (
+          <div className="tt-scroll" ref={scrollRef}>
+            <HorizontalTimeline
+              events={events}
+              connections={connections}
+              range={RANGE}
+              scale={scale}
+              level={zoom}
+              levelInfo={levelInfo}
+              onSelect={handleSelect}
+              selectedId={selectedId}
+              relatedIds={relatedIds}
+              scrollLeft={scrollLeft}
+              viewW={viewW}
+              editingId={editingId}
+              onDragUpdate={handleDragUpdate}
+              canvasRef={canvasRef}
+            />
+          </div>
+        )}
         {!isMobile && selected && (
           <SidePanel
             event={selected}
