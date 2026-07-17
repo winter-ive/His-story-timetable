@@ -35,24 +35,23 @@ function parseEventsFromSheets(rows) {
 }
 
 async function fetchEventsFromSheets() {
-  return new Promise((resolve, reject) => {
-    const callbackName = `jsonp_${Date.now()}`;
-    const script = document.createElement("script");
+  const res = await fetch("/api/sheets");
+  const data = await res.json();
+  return parseEventsFromSheets(data.events);
+}
 
-    window[callbackName] = (data) => {
-      delete window[callbackName];
-      document.body.removeChild(script);
-      resolve(parseEventsFromSheets(data.events));
-    };
-
-    script.onerror = () => {
-      delete window[callbackName];
-      document.body.removeChild(script);
-      reject(new Error("JSONP 로드 실패"));
-    };
-
-    script.src = `${SHEETS_API}?callback=${callbackName}`;
-    document.body.appendChild(script);
+async function saveEventsToSheets(events) {
+  const payload = events.map((ev) => ({
+    id: ev.id, lane: ev.lane, type: ev.type,
+    start: ev.start, end: ev.end ?? "",
+    title: ev.title, y: ev.y, heightPx: ev.heightPx,
+    z: ev.z ?? 1, labelAlign: ev.labelAlign ?? "right",
+    description: ev.description ?? "",
+  }));
+  await fetch("/api/sheets", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ events: payload }),
   });
 }
 
