@@ -42,21 +42,6 @@ async function fetchEventsFromSheets() {
 
 async function saveEventsToSheets(events) {
   const payload = events.map((ev) => ({
-    id: ev.id, lane: ev.lane, type: ev.type,
-    start: ev.start, end: ev.end ?? "",
-    title: ev.title, y: ev.y, heightPx: ev.heightPx,
-    z: ev.z ?? 1, labelAlign: ev.labelAlign ?? "right",
-    description: ev.description ?? "",
-  }));
-  await fetch("/api/sheets", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ events: payload }),
-  });
-}
-
-async function saveEventsToSheets(events) {
-  const payload = events.map((ev) => ({
     id: ev.id,
     lane: ev.lane,
     type: ev.type,
@@ -71,6 +56,7 @@ async function saveEventsToSheets(events) {
   }));
   await fetch(SHEETS_API, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ events: payload }),
   });
 }
