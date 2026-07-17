@@ -35,9 +35,25 @@ function parseEventsFromSheets(rows) {
 }
 
 async function fetchEventsFromSheets() {
-  const res = await fetch(SHEETS_API);
-  const data = await res.json();
-  return parseEventsFromSheets(data.events);
+  return new Promise((resolve, reject) => {
+    const callbackName = `jsonp_${Date.now()}`;
+    const script = document.createElement("script");
+
+    window[callbackName] = (data) => {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      resolve(parseEventsFromSheets(data.events));
+    };
+
+    script.onerror = () => {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      reject(new Error("JSONP 로드 실패"));
+    };
+
+    script.src = `${SHEETS_API}?callback=${callbackName}`;
+    document.body.appendChild(script);
+  });
 }
 
 async function saveEventsToSheets(events) {
