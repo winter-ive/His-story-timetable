@@ -32,20 +32,10 @@ export default function EventsLayer({
   function expandYRange(y, h) {
     const top = y * yScale;
     const bot = (y + h) * yScale;
-    const TOP = 0, BOT = crossAxis;
-    const out = [];
-    const a0 = Math.max(top, TOP);
-    const a1 = Math.min(bot, BOT);
-    if (a1 > a0) out.push({ y0: a0, y1: a1, isTopAnchor: top >= TOP });
-    if (top < TOP) {
-      const overflow = TOP - top;
-      out.push({ y0: BOT - overflow, y1: BOT, isTopAnchor: false });
-    }
-    if (bot > BOT) {
-      const overflow = bot - BOT;
-      out.push({ y0: 0, y1: overflow, isTopAnchor: false });
-    }
-    return out;
+    const a0 = Math.max(top, 0);
+    const a1 = Math.min(bot, crossAxis);
+    if (a1 <= a0) return [];
+    return [{ y0: a0, y1: a1, isTopAnchor: top >= 0 }];
   }
 
   function sliceByLane(y0, y1) {
@@ -130,7 +120,10 @@ export default function EventsLayer({
     const elements = [];
 
     ranges.forEach((rg, ri) => {
-      const segs = sliceByLane(rg.y0, rg.y1);
+      // 편집 중인 스팟은 레인 분리 없이 단일 세그먼트로 렌더 — 경계면 잔상 방지
+      const segs = (isEditing && !isSpan)
+        ? [{ laneIdx: 0, y0: rg.y0, y1: rg.y1, xOffTop: 0, xOffBot: 0, skewed: false }]
+        : sliceByLane(rg.y0, rg.y1);
       segs.forEach((s, si) => {
         const isTop = ri === 0 && si === 0;
         const isBot = ri === 0 && si === segs.length - 1;

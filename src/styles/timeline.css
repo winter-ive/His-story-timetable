@@ -1427,3 +1427,8 @@ body {
     height 200ms cubic-bezier(0.2, 0, 0, 1),
     opacity 200ms ease;
 }
+
+/* 편집 중인 세그먼트는 transition 억제 — 슬라이더/드래그 잔상 방지 */
+.tt-event-seg.editing {
+  transition: none;
+}
